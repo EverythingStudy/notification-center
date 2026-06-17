@@ -1,9 +1,0 @@
-﻿spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/notification?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-    username: root
-    password: root
-
-logging:
-  level:
-    com.notification: DEBUG

@@ -21,10 +21,10 @@ kafka:
     group-id: notification-center-group
     auto-offset-reset: earliest
   topics:
-    upstream-raw: upstream-raw
-    channel-send: channel-send
-    channel-retry: channel-retry
-    channel-dead-letter: channel-dead-letter
+    notification.upstream.raw: notification.upstream.raw
+    notification.channel.send: notification.channel.send
+    notification.channel.retry: notification.channel.retry
+    notification.channel.dead-letter: notification.channel.dead-letter
 
 redis:
   host: ${REDIS_HOST:localhost}
