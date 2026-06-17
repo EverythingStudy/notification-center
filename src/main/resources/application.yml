@@ -1,4 +1,4 @@
-﻿server:
+server:
   port: 8080
 
 spring:
@@ -21,10 +21,10 @@ kafka:
     group-id: notification-center-group
     auto-offset-reset: earliest
   topics:
-    notification.upstream.raw: notification.upstream.raw
-    notification.channel.send: notification.channel.send
-    notification.channel.retry: notification.channel.retry
-    notification.channel.dead-letter: notification.channel.dead-letter
+    upstream-raw: notification.upstream.raw
+    channel-send: notification.channel.send
+    channel-retry: notification.channel.retry
+    channel-dead-letter: notification.channel.dead-letter
 
 redis:
   host: ${REDIS_HOST:localhost}
