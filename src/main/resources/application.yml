@@ -6,20 +6,26 @@ spring:
     name: notification-center
   profiles:
     active: dev
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
-    open-in-view: false
   flyway:
     enabled: true
-    baseline-on-migrate: true
+
+  # MyBatis Configuration
+mybatis:
+  mapper-locations: classpath:mybatis/mapper/*.xml
+  type-aliases-package: com.notification.model.entity
+  type-handlers-package: com.notification.handler
+  configuration:
+    map-underscore-to-camel-case: true
 
 kafka:
   bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
   consumer:
     group-id: notification-center-group
     auto-offset-reset: earliest
+  admin:
+    fail-fast: false
+    properties:
+      "default.api.timeout.ms": 3000
   topics:
     upstream-raw: notification.upstream.raw
     channel-send: notification.channel.send
@@ -29,6 +35,31 @@ kafka:
 redis:
   host: ${REDIS_HOST:localhost}
   port: ${REDIS_PORT:6379}
+
+# Channel-specific configuration
+channel:
+  dingtalk:
+    webhook-url: ${DINGTALK_WEBHOOK_URL:}
+  email:
+    from: ${EMAIL_FROM:noreply@notification.com}
+  sms:
+    api-url: ${SMS_API_URL:}
+    app-key: ${SMS_APP_KEY:}
+    app-secret: ${SMS_APP_SECRET:}
+  webhook:
+    url: ${WEBHOOK_URL:}
+  wechat:
+    app-id: ${WECHAT_APP_ID:}
+    app-secret: ${WECHAT_APP_SECRET:}
+
+# Rate limiting configuration (requests per second per channel)
+ratelimit:
+  sms: 20
+  email: 100
+  wechat: 50
+  dingtalk: 200
+  webhook: 500
+  in-app: 5000
 
 app:
   retry:
