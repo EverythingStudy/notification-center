@@ -1,0 +1,14 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Java source
+*.java text eol=lf
+
+# XML
+*.xml text eol=lf
+
+# YAML
+*.yml text eol=lf
+
+# Properties
+*.properties text eol=lf
