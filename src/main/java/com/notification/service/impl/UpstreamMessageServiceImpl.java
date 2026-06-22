@@ -83,12 +83,12 @@ public class UpstreamMessageServiceImpl implements UpstreamMessageService {
                 .status(MessageStatusEnum.NORMAL)
                 .createTime(LocalDateTime.now())
                 .build();
-        message = messageService.saveMessage(message);
+        Message savedMessage = messageService.saveMessage(message);
 
         // 6. 建立消息与 Feed 的关联
         List<MessageFeedMapping> mappings = feedTypes.stream()
                 .map(ft -> MessageFeedMapping.builder()
-                        .messageId(message.getId())
+                        .messageId(savedMessage.getId())
                         .feedType(ft)
                         .build())
                 .toList();
