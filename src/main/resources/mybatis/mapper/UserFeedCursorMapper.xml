@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.notification.mapper.UserFeedCursorMapper">
+
+    <resultMap id="BaseResultMap" type="com.notification.model.entity.UserFeedCursor">
+        <result column="user_id" property="userId" jdbcType="BIGINT"/>
+        <result column="feed_type" property="feedType" jdbcType="VARCHAR"/>
+        <result column="cursor" property="cursor" jdbcType="BIGINT"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        user_id, feed_type, cursor, update_time
+    </sql>
+
+    <insert id="insert">
+        INSERT INTO user_feed_cursor (user_id, feed_type, cursor, update_time)
+        VALUES (#{userId}, #{feedType}, #{cursor}, NOW())
+    </insert>
+
+    <update id="updateCursor">
+        UPDATE user_feed_cursor
+        SET cursor = GREATEST(cursor, #{cursor}), update_time = NOW()
+        WHERE user_id = #{userId} AND feed_type = #{feedType}
+          AND cursor &lt; #{cursor}
+    </update>
+
+    <select id="findByUserIdAndFeedType" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM user_feed_cursor
+        WHERE user_id = #{userId} AND feed_type = #{feedType}
+    </select>
+
+    <select id="findByUserId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM user_feed_cursor
+        WHERE user_id = #{userId}
+    </select>
+
+    <select id="findByUserIdAndFeedTypes" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM user_feed_cursor
+        WHERE user_id = #{userId}
+          AND feed_type IN
+        <foreach collection="feedTypes" item="ft" open="(" separator="," close=")">
+            #{ft}
+        </foreach>
+    </select>
+
+</mapper>

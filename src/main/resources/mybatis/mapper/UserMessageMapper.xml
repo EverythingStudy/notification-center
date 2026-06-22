@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.notification.mapper.UserMessageMapper">
+
+    <resultMap id="BaseResultMap" type="com.notification.model.entity.UserMessage">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="user_id" property="userId" jdbcType="BIGINT"/>
+        <result column="message_id" property="messageId" jdbcType="BIGINT"/>
+        <result column="biz_type" property="bizType" jdbcType="VARCHAR"/>
+        <result column="status" property="status" jdbcType="TINYINT"/>
+        <result column="read_time" property="readTime" jdbcType="TIMESTAMP"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, user_id, message_id, biz_type, status, read_time, create_time
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO user_message (user_id, message_id, biz_type, status, read_time, create_time)
+        VALUES (#{userId}, #{messageId}, #{bizType}, #{status.code}, #{readTime}, #{createTime})
+    </insert>
+
+    <update id="updateStatus">
+        UPDATE user_message
+        SET status = #{status}, read_time = NOW()
+        WHERE user_id = #{userId} AND message_id = #{messageId}
+    </update>
+
+    <select id="findByUserIdAndStatus" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM user_message
+        WHERE user_id = #{userId} AND status = #{status}
+        ORDER BY create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="findByUserId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM user_message
+        WHERE user_id = #{userId}
+        ORDER BY create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countByUserIdAndStatus" resultType="long">
+        SELECT COUNT(1) FROM user_message
+        WHERE user_id = #{userId} AND status = #{status}
+    </select>
+
+</mapper>

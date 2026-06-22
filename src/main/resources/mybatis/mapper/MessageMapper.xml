@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.notification.mapper.MessageMapper">
+
+    <resultMap id="BaseResultMap" type="com.notification.model.entity.Message">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="biz_type" property="bizType" jdbcType="VARCHAR"/>
+        <result column="title" property="title" jdbcType="VARCHAR"/>
+        <result column="content_url" property="contentUrl" jdbcType="VARCHAR"/>
+        <result column="send_type" property="sendType" jdbcType="TINYINT"/>
+        <result column="status" property="status" jdbcType="TINYINT"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="expire_time" property="expireTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, biz_type, title, content_url, send_type, status, create_time, expire_time
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO message (biz_type, title, content_url, send_type, status, create_time, expire_time)
+        VALUES (#{bizType}, #{title}, #{contentUrl}, #{sendType.code}, #{status.code},
+                #{createTime}, #{expireTime})
+    </insert>
+
+    <update id="updateStatus">
+        UPDATE message SET status = #{status} WHERE id = #{id}
+    </update>
+
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM message WHERE id = #{id}
+    </select>
+
+    <select id="findBroadcastByFeedAndCursor" resultMap="BaseResultMap">
+        SELECT m.id, m.biz_type, m.title, m.content_url, m.send_type, m.status, m.create_time, m.expire_time
+        FROM message m
+        JOIN message_feed_mapping mfm ON m.id = mfm.message_id
+        WHERE mfm.feed_type = #{feedType}
+          AND m.id > #{cursor}
+          AND m.status = 0
+          AND (m.expire_time IS NULL OR m.expire_time > NOW())
+        ORDER BY m.id ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="findBroadcastByFeedsAndCursor" resultMap="BaseResultMap">
+        SELECT m.id, m.biz_type, m.title, m.content_url, m.send_type, m.status, m.create_time, m.expire_time
+        FROM message m
+        JOIN message_feed_mapping mfm ON m.id = mfm.message_id
+        WHERE mfm.feed_type IN
+        <foreach collection="feedTypes" item="ft" open="(" separator="," close=")">
+            #{ft}
+        </foreach>
+          AND m.id > #{cursor}
+          AND m.status = 0
+          AND (m.expire_time IS NULL OR m.expire_time > NOW())
+        ORDER BY m.id ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="findMaxIdByFeedType" resultType="java.lang.Long">
+        SELECT COALESCE(MAX(m.id), 0)
+        FROM message m
+        JOIN message_feed_mapping mfm ON m.id = mfm.message_id
+        WHERE mfm.feed_type = #{feedType}
+    </select>
+
+</mapper>

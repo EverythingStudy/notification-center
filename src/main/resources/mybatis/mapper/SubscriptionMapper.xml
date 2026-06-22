@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.notification.mapper.SubscriptionMapper">
+
+    <insert id="insert">
+        INSERT INTO subscription (user_id, feed_type)
+        VALUES (#{userId}, #{feedType})
+    </insert>
+
+    <delete id="delete">
+        DELETE FROM subscription WHERE user_id = #{userId} AND feed_type = #{feedType}
+    </delete>
+
+    <select id="findByUserId" resultType="com.notification.model.entity.Subscription">
+        SELECT user_id AS userId, feed_type AS feedType
+        FROM subscription WHERE user_id = #{userId}
+    </select>
+
+    <select id="findFeedTypesByUserId" resultType="string">
+        SELECT feed_type FROM subscription WHERE user_id = #{userId}
+    </select>
+
+</mapper>
