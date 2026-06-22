@@ -31,6 +31,7 @@ kafka:
     channel-send: notification.channel.send
     channel-retry: notification.channel.retry
     channel-dead-letter: notification.channel.dead-letter
+    message-recall: notification.message.recall
 
 redis:
   host: ${REDIS_HOST:localhost}

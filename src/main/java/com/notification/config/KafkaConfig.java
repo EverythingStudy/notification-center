@@ -23,6 +23,9 @@ public class KafkaConfig {
     @Value("${kafka.topics.channel-dead-letter}")
     private String channelDeadLetterTopic;
 
+    @Value("${kafka.topics.message-recall}")
+    private String messageRecallTopic;
+
     @Bean
     public NewTopic upstreamRawTopic() {
         return TopicBuilder.name(upstreamRawTopic)
@@ -51,6 +54,14 @@ public class KafkaConfig {
     public NewTopic channelDeadLetterTopic() {
         return TopicBuilder.name(channelDeadLetterTopic)
                 .partitions(2)
+                .replicas(1)
+                .build();
+    }
+
+    @Bean
+    public NewTopic messageRecallTopic() {
+        return TopicBuilder.name(messageRecallTopic)
+                .partitions(4)
                 .replicas(1)
                 .build();
     }
