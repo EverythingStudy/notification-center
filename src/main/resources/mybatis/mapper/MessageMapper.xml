@@ -24,7 +24,7 @@
     </insert>
 
     <update id="updateStatus">
-        UPDATE message SET status = #{status} WHERE id = #{id}
+        UPDATE message SET status = #{status} WHERE id = #{id} AND status &lt; #{status}
     </update>
 
     <select id="findById" resultMap="BaseResultMap">

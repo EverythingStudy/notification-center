@@ -3,8 +3,8 @@
 <mapper namespace="com.notification.mapper.UserFeedCursorMapper">
 
     <resultMap id="BaseResultMap" type="com.notification.model.entity.UserFeedCursor">
-        <result column="user_id" property="userId" jdbcType="BIGINT"/>
-        <result column="feed_type" property="feedType" jdbcType="VARCHAR"/>
+        <id column="user_id" property="userId" jdbcType="BIGINT"/>
+        <id column="feed_type" property="feedType" jdbcType="VARCHAR"/>
         <result column="cursor" property="cursor" jdbcType="BIGINT"/>
         <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
     </resultMap>
