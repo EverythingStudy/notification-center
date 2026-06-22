@@ -33,4 +33,12 @@ public class MessageIdUtils {
     public static String buildFeedMaxCursorKey(String feedType) {
         return "feed:" + feedType + ":max_cursor";
     }
+
+    /**
+     * 用户未读分类计数 Key
+     * 存储用户在某个分类下的未读消息数量
+     */
+    public static String buildUnreadCategoryKey(Long userId, String category) {
+        return "user:" + userId + ":unread:" + category;
+    }
 }

@@ -1,7 +1,7 @@
 package com.notification.service.impl;
 
+import com.notification.mapper.NotificationTemplateMapper;
 import com.notification.model.entity.NotificationTemplate;
-import com.notification.repository.NotificationTemplateRepository;
 import com.notification.service.TemplateService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,11 +15,11 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class TemplateServiceImpl implements TemplateService {
 
-    private final NotificationTemplateRepository templateRepository;
+    private final NotificationTemplateMapper templateMapper;
 
     @Override
     public Optional<NotificationTemplate> findByCode(String templateCode) {
-        return templateRepository.findByTemplateCode(templateCode);
+        return templateMapper.findByTemplateCode(templateCode);
     }
 
     @Override
