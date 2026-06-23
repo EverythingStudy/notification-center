@@ -39,4 +39,12 @@ public interface MessageMapper {
      * 获取 Feed 最大消息 ID（用于 max_cursor）
      */
     Long findMaxIdByFeedType(@Param("feedType") String feedType);
+
+    /**
+     * 统计某个 Feed 中 cursor 之后的未读消息数
+     * 直接 COUNT 而非 max-cursor，避免全局自增 ID 带来的不准确
+     */
+    long countByFeedTypeAndCursor(
+            @Param("feedType") String feedType,
+            @Param("cursor") Long cursor);
 }

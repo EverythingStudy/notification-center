@@ -41,4 +41,10 @@ public interface MessageService {
      * 获取 Feed 当前最大消息 ID
      */
     Long getFeedMaxCursor(String feedType);
+
+    /**
+     * 统计某个 Feed 中 cursor 之后的未读消息数
+     * 直接 COUNT 数据库，避免 max(cursor) - cursor 公式因全局自增 ID 导致的不准确
+     */
+    long countUnreadByFeed(String feedType, Long cursor);
 }

@@ -70,4 +70,9 @@ public class MessageServiceImpl implements MessageService {
         }
         return maxId != null ? maxId : 0L;
     }
+
+    @Override
+    public long countUnreadByFeed(String feedType, Long cursor) {
+        return messageMapper.countByFeedTypeAndCursor(feedType, cursor);
+    }
 }

@@ -65,4 +65,14 @@
         WHERE mfm.feed_type = #{feedType}
     </select>
 
+    <select id="countByFeedTypeAndCursor" resultType="long">
+        SELECT COUNT(1)
+        FROM message m
+        JOIN message_feed_mapping mfm ON m.id = mfm.message_id
+        WHERE mfm.feed_type = #{feedType}
+          AND m.id > #{cursor}
+          AND m.status = 0
+          AND (m.expire_time IS NULL OR m.expire_time > NOW())
+    </select>
+
 </mapper>

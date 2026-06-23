@@ -112,9 +112,8 @@ public class CursorServiceImpl implements CursorService {
 
     @Override
     public long getUnreadCount(Long userId, String feedType) {
-        long feedMax = messageService.getFeedMaxCursor(feedType);
         long userCursor = getCursor(userId, feedType);
-        return Math.max(0, feedMax - userCursor);
+        return messageService.countUnreadByFeed(feedType, userCursor);
     }
 
     @Override
@@ -130,9 +129,8 @@ public class CursorServiceImpl implements CursorService {
         Map<String, Long> userCursors = getCursors(userId, feedTypes);
 
         for (String ft : feedTypes) {
-            long feedMax = messageService.getFeedMaxCursor(ft);
             long userCursor = userCursors.getOrDefault(ft, 0L);
-            result.put(ft, Math.max(0, feedMax - userCursor));
+            result.put(ft, messageService.countUnreadByFeed(ft, userCursor));
         }
 
         return result;
