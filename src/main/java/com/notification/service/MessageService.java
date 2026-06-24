@@ -38,13 +38,18 @@ public interface MessageService {
     List<Message> findBroadcastMessagesByFeeds(List<String> feedTypes, Long cursor, int limit);
 
     /**
+     * 查询用户在某个 Feed 中 cursor 之后的未读消息列表
+     * 排除用户已逐条标记为已读的消息
+     */
+    List<Message> findUnreadMessagesByFeed(Long userId, String feedType, Long cursor, int limit);
+
+    /**
      * 获取 Feed 当前最大消息 ID
      */
     Long getFeedMaxCursor(String feedType);
 
     /**
-     * 统计某个 Feed 中 cursor 之后的未读消息数
-     * 直接 COUNT 数据库，避免 max(cursor) - cursor 公式因全局自增 ID 导致的不准确
+     * 统计某个 Feed 中所有正常消息数（不含已撤回/已过期）
      */
-    long countUnreadByFeed(String feedType, Long cursor);
+    long countByFeedType(String feedType);
 }

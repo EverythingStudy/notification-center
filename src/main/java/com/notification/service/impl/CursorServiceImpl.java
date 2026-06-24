@@ -1,6 +1,7 @@
 package com.notification.service.impl;
 
 import com.notification.mapper.UserFeedCursorMapper;
+import com.notification.mapper.UserMessageMapper;
 import com.notification.model.entity.UserFeedCursor;
 import com.notification.service.CursorService;
 import com.notification.service.MessageService;
@@ -28,6 +29,7 @@ public class CursorServiceImpl implements CursorService {
 
     private final UserFeedCursorMapper cursorMapper;
     private final MessageService messageService;
+    private final UserMessageMapper userMessageMapper;
     private final RedisTemplate<String, Object> redisTemplate;
 
     @Override
@@ -112,8 +114,13 @@ public class CursorServiceImpl implements CursorService {
 
     @Override
     public long getUnreadCount(Long userId, String feedType) {
-        long userCursor = getCursor(userId, feedType);
-        return messageService.countUnreadByFeed(feedType, userCursor);
+        // 广播未读 = feed 总广播消息 - 已逐条已读的广播消息
+        long broadcastTotal = messageService.countByFeedType(feedType);
+        long broadcastRead = userMessageMapper.countReadByUserAndFeed(userId, feedType);
+        long broadcastUnread = Math.max(broadcastTotal - broadcastRead, 0);
+        // USER 未读 = 发送时写入的 UNREAD 记录
+        long userUnread = userMessageMapper.countUnreadUserByFeed(userId, feedType);
+        return broadcastUnread + userUnread;
     }
 
     @Override
@@ -126,13 +133,9 @@ public class CursorServiceImpl implements CursorService {
     @Override
     public Map<String, Long> getUnreadCounts(Long userId, List<String> feedTypes) {
         Map<String, Long> result = new HashMap<>();
-        Map<String, Long> userCursors = getCursors(userId, feedTypes);
-
         for (String ft : feedTypes) {
-            long userCursor = userCursors.getOrDefault(ft, 0L);
-            result.put(ft, messageService.countUnreadByFeed(ft, userCursor));
+            result.put(ft, getUnreadCount(userId, ft));
         }
-
         return result;
     }
 }

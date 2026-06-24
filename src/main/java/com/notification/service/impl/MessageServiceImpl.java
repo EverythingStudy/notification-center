@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 消息主体服务实现
@@ -56,6 +57,11 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
+    public List<Message> findUnreadMessagesByFeed(Long userId, String feedType, Long cursor, int limit) {
+        return messageMapper.findUnreadByFeedAndCursor(userId, feedType, cursor, limit);
+    }
+
+    @Override
     public Long getFeedMaxCursor(String feedType) {
         // 优先从 Redis 获取
         String redisKey = MessageIdUtils.buildFeedMaxCursorKey(feedType);
@@ -72,7 +78,14 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
-    public long countUnreadByFeed(String feedType, Long cursor) {
-        return messageMapper.countByFeedTypeAndCursor(feedType, cursor);
+    public long countByFeedType(String feedType) {
+        String redisKey = "feed:" + feedType + ":count";
+        Object cached = redisTemplate.opsForValue().get(redisKey);
+        if (cached instanceof Number num) {
+            return num.longValue();
+        }
+        long count = messageMapper.countByFeedType(feedType);
+        redisTemplate.opsForValue().set(redisKey, count, 30, TimeUnit.SECONDS);
+        return count;
     }
 }

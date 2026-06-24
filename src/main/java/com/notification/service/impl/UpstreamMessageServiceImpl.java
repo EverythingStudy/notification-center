@@ -14,9 +14,9 @@ import com.notification.model.entity.NotificationMessage;
 import com.notification.model.entity.NotificationTemplate;
 import com.notification.model.entity.UserMessage;
 import com.notification.model.enums.FeedTypeEnum;
+import com.notification.model.enums.ReadStatusEnum;
 import com.notification.model.enums.MessageSendTypeEnum;
 import com.notification.model.enums.MessageStatusEnum;
-import com.notification.model.enums.ReadStatusEnum;
 import com.notification.model.enums.SendStatusEnum;
 import com.notification.service.MessageService;
 import com.notification.service.TemplateService;
@@ -43,8 +43,8 @@ public class UpstreamMessageServiceImpl implements UpstreamMessageService {
     private final TemplateService templateService;
     private final MessageService messageService;
     private final MessageFeedMappingMapper feedMappingMapper;
-    private final UserMessageMapper userMessageMapper;
     private final NotificationMessageMapper notificationMessageMapper;
+    private final UserMessageMapper userMessageMapper;
     private final ChannelSendService channelSendService;
     private final RedisTemplate<String, Object> redisTemplate;
 
@@ -98,7 +98,7 @@ public class UpstreamMessageServiceImpl implements UpstreamMessageService {
         if (isBroadcast) {
             handleBroadcastMessage(dto, message, feedTypes);
         } else {
-            handleUserMessage(dto, message, template, renderedTitle);
+            handleUserMessage(dto, message, template, renderedTitle, feedTypes);
         }
 
         log.info("上游消息处理完成: messageId={}, messageTableId={}", dto.getMessageId(), message.getId());
@@ -125,7 +125,8 @@ public class UpstreamMessageServiceImpl implements UpstreamMessageService {
      * 同时兼容现有渠道发送流程
      */
     private void handleUserMessage(UpstreamMessageDTO dto, Message message,
-                                   NotificationTemplate template, String renderedTitle) {
+                                   NotificationTemplate template, String renderedTitle,
+                                   List<String> feedTypes) {
         List<Long> userIds = dto.getRecipients() != null && dto.getRecipients().getUserIds() != null
                 ? dto.getRecipients().getUserIds()
                 : List.of();
@@ -150,18 +151,20 @@ public class UpstreamMessageServiceImpl implements UpstreamMessageService {
             }
             redisTemplate.expire(dedupKey, java.time.Duration.ofDays(7));
 
-            // 写入 user_message（写扩散）
+            // 写入 user_message（UNREAD 状态），标记该用户有待读的 USER 消息
+            String userMsgFeedType = feedTypes != null && !feedTypes.isEmpty() ? feedTypes.get(0) : FeedTypeEnum.SYSTEM.getCode();
             UserMessage userMsg = UserMessage.builder()
                     .userId(userId)
                     .messageId(message.getId())
+                    .feedType(userMsgFeedType)
                     .bizType(dto.getCategory())
+                    .sendType(1)  // USER
                     .status(ReadStatusEnum.UNREAD)
                     .createTime(LocalDateTime.now())
                     .build();
             try {
                 userMessageMapper.insert(userMsg);
             } catch (Exception e) {
-                // UNIQUE(user_id, message_id) 保证幂等，重复插入忽略
                 log.warn("user_message 重复插入忽略: userId={}, messageId={}", userId, message.getId());
             }
 

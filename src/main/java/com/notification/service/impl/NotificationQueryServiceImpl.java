@@ -15,13 +15,17 @@ import com.notification.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 /**
  * 消息查询服务实现（消息中心模式）
+ * Cursor = "全部已读"水位（仅全部标已读时推进）
+ * user_message = 逐条消息的已读状态
  */
 @Slf4j
 @Service
@@ -38,11 +42,10 @@ public class NotificationQueryServiceImpl implements NotificationQueryService {
         // 1. 获取用户可访问的 Feed
         List<String> feedTypes = subscriptionService.getUserFeedTypes(userId);
         if (feedTypes.isEmpty()) {
-            // 默认所有用户可访问 SYSTEM
             feedTypes = List.of(FeedTypeEnum.SYSTEM.getCode());
         }
 
-        // 2. 计算各 Feed 未读数
+        // 2. 计算各 Feed 未读数（已排除逐条已读的消息）
         Map<String, Long> unreadCounts = cursorService.getUnreadCounts(userId, feedTypes);
 
         // 3. 组装 VO
@@ -59,26 +62,69 @@ public class NotificationQueryServiceImpl implements NotificationQueryService {
     }
 
     @Override
+    public List<MessageVO> getFeedMessages(Long userId, String feedType, Long after, int size) {
+        // 未传 after 时，使用 user_cursor 作为水位
+        long cursor = after != null ? after : cursorService.getCursor(userId, feedType);
+        List<Message> messages = messageService.findUnreadMessagesByFeed(userId, feedType, cursor, size);
+
+        return messages.stream()
+                .map(msg -> MessageVO.builder()
+                        .messageId(msg.getId())
+                        .title(msg.getTitle())
+                        .contentUrl(msg.getContentUrl())
+                        .bizType(msg.getBizType())
+                        .feedType(feedType)
+                        .sendType(msg.getSendType() != null ? msg.getSendType().name() : "BROADCAST")
+                        .isRead(false)
+                        .createTime(msg.getCreateTime())
+                        .build())
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public void markAsRead(Long userId, Long messageId, String feedType) {
+        // INSERT IGNORE + UNIQUE(user_id, message_id) 保证幂等
+        userMessageMapper.insertRead(userId, messageId, feedType, LocalDateTime.now());
+        log.debug("逐条标为已读: userId={}, messageId={}, feedType={}", userId, messageId, feedType);
+    }
+
+    @Override
+    @Transactional
+    public void markAllRead(Long userId, String feedType) {
+        // 1. 获取 feed 当前最大消息 ID 作为新 cursor
+        Long maxCursor = messageService.getFeedMaxCursor(feedType);
+        if (maxCursor == null || maxCursor == 0L) {
+            log.debug("Feed 无消息，跳过: feedType={}", feedType);
+            return;
+        }
+
+        // 2. 推进 cursor（GREATEST 保证单调递增）
+        cursorService.updateCursor(userId, feedType, maxCursor);
+        log.info("全部标为已读: userId={}, feedType={}, cursor={}", userId, feedType, maxCursor);
+    }
+
+    @Override
     public PageResponse<MessageVO> pageMessages(Long userId, int page, int size) {
-        // 1. 获取用户可访问的 Feed
         List<String> feedTypes = subscriptionService.getUserFeedTypes(userId);
         if (feedTypes.isEmpty()) {
             feedTypes = List.of(FeedTypeEnum.SYSTEM.getCode());
         }
 
-        // 2. 获取用户当前 cursor（取所有 Feed 中最小 cursor 作为起始点）
         Map<String, Long> cursors = cursorService.getCursors(userId, feedTypes);
         long minCursor = cursors.values().stream().min(Long::compareTo).orElse(0L);
 
-        // 3. 查询广播消息（读扩散）
-        List<Message> broadcastMessages = messageService.findBroadcastMessagesByFeeds(
-                feedTypes, minCursor, size);
+        // 查广播消息（使用新查询，排除已逐条已读的）
+        List<Message> broadcastMessages = new ArrayList<>();
+        for (String ft : feedTypes) {
+            broadcastMessages.addAll(
+                    messageService.findUnreadMessagesByFeed(userId, ft, minCursor, size));
+        }
 
-        // 4. 查询用户消息（写扩散）
+        // 查用户消息（旧兼容）
         int offset = page * size;
         List<UserMessage> userMessages = userMessageMapper.findByUserId(userId, offset, size);
 
-        // 5. 合并结果
         List<MessageVO> items = new ArrayList<>();
 
         for (Message msg : broadcastMessages) {
@@ -89,7 +135,7 @@ public class NotificationQueryServiceImpl implements NotificationQueryService {
                     .bizType(msg.getBizType())
                     .feedType("")
                     .sendType("BROADCAST")
-                    .isRead(true)
+                    .isRead(false)
                     .createTime(msg.getCreateTime())
                     .build());
         }
@@ -109,15 +155,7 @@ public class NotificationQueryServiceImpl implements NotificationQueryService {
             });
         }
 
-        // 按时间降序排列
         items.sort((a, b) -> b.getCreateTime().compareTo(a.getCreateTime()));
-
         return new PageResponse<>(items, (long) items.size(), page + 1, size);
-    }
-
-    @Override
-    public void updateCursor(Long userId, String feedType, Long cursor) {
-        cursorService.updateCursor(userId, feedType, cursor);
-        log.info("用户更新 Cursor: userId={}, feed={}, cursor={}", userId, feedType, cursor);
     }
 }

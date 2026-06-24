@@ -41,10 +41,16 @@ public interface MessageMapper {
     Long findMaxIdByFeedType(@Param("feedType") String feedType);
 
     /**
-     * 统计某个 Feed 中 cursor 之后的未读消息数
-     * 直接 COUNT 而非 max-cursor，避免全局自增 ID 带来的不准确
+     * 统计某个 Feed 中所有正常消息数（不含已撤回/已过期）
      */
-    long countByFeedTypeAndCursor(
+    long countByFeedType(@Param("feedType") String feedType);
+
+    /**
+     * 查询某个 Feed 中 cursor 之后的未读广播消息（排除已逐条已读）
+     */
+    List<Message> findUnreadByFeedAndCursor(
+            @Param("userId") Long userId,
             @Param("feedType") String feedType,
-            @Param("cursor") Long cursor);
+            @Param("cursor") Long cursor,
+            @Param("limit") int limit);
 }

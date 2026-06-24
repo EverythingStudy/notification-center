@@ -6,19 +6,21 @@
         <id column="id" property="id" jdbcType="BIGINT"/>
         <result column="user_id" property="userId" jdbcType="BIGINT"/>
         <result column="message_id" property="messageId" jdbcType="BIGINT"/>
+        <result column="feed_type" property="feedType" jdbcType="VARCHAR"/>
         <result column="biz_type" property="bizType" jdbcType="VARCHAR"/>
+        <result column="send_type" property="sendType" jdbcType="TINYINT"/>
         <result column="status" property="status" jdbcType="TINYINT"/>
         <result column="read_time" property="readTime" jdbcType="TIMESTAMP"/>
         <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
     </resultMap>
 
     <sql id="Base_Column_List">
-        id, user_id, message_id, biz_type, status, read_time, create_time
+        id, user_id, message_id, feed_type, biz_type, send_type, status, read_time, create_time
     </sql>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
-        INSERT INTO user_message (user_id, message_id, biz_type, status, read_time, create_time)
-        VALUES (#{userId}, #{messageId}, #{bizType}, #{status.code}, #{readTime}, #{createTime})
+        INSERT INTO user_message (user_id, message_id, biz_type, feed_type, send_type, status, read_time, create_time)
+        VALUES (#{userId}, #{messageId}, #{bizType}, #{feedType}, #{sendType}, #{status.code}, #{readTime}, #{createTime})
     </insert>
 
     <update id="updateStatus">
@@ -46,6 +48,33 @@
     <select id="countByUserIdAndStatus" resultType="long">
         SELECT COUNT(1) FROM user_message
         WHERE user_id = #{userId} AND status = #{status}
+    </select>
+
+    <insert id="insertRead">
+        INSERT INTO user_message (user_id, message_id, feed_type, biz_type, send_type, status, read_time, create_time)
+        VALUES (#{userId}, #{messageId}, #{feedType}, '', 0, 1, #{readTime}, NOW())
+        ON DUPLICATE KEY UPDATE status = 1, read_time = NOW()
+    </insert>
+
+    <select id="findReadMessageIdsByFeed" resultType="long">
+        SELECT um.message_id
+        FROM user_message um
+        JOIN message_feed_mapping mfm ON um.message_id = mfm.message_id AND mfm.feed_type = #{feedType}
+        WHERE um.user_id = #{userId} AND um.status = 1 AND um.send_type = 0
+    </select>
+
+    <select id="countReadByUserAndFeed" resultType="long">
+        SELECT COUNT(1)
+        FROM user_message um
+        JOIN message_feed_mapping mfm ON um.message_id = mfm.message_id AND mfm.feed_type = #{feedType}
+        WHERE um.user_id = #{userId} AND um.status = 1 AND um.send_type = 0
+    </select>
+
+    <select id="countUnreadUserByFeed" resultType="long">
+        SELECT COUNT(1)
+        FROM user_message um
+        JOIN message_feed_mapping mfm ON um.message_id = mfm.message_id AND mfm.feed_type = #{feedType}
+        WHERE um.user_id = #{userId} AND um.status = 0 AND um.send_type = 1
     </select>
 
 </mapper>

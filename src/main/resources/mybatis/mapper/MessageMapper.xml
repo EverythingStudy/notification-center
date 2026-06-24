@@ -43,6 +43,20 @@
         LIMIT #{limit}
     </select>
 
+    <select id="findUnreadByFeedAndCursor" resultMap="BaseResultMap">
+        SELECT m.id, m.biz_type, m.title, m.content_url, m.send_type, m.status, m.create_time, m.expire_time
+        FROM message m
+        JOIN message_feed_mapping mfm ON m.id = mfm.message_id
+        LEFT JOIN user_message um ON m.id = um.message_id AND um.user_id = #{userId} AND um.status = 1
+        WHERE mfm.feed_type = #{feedType}
+          AND m.id > #{cursor}
+          AND m.status = 0
+          AND (m.expire_time IS NULL OR m.expire_time > NOW())
+          AND um.message_id IS NULL
+        ORDER BY m.id ASC
+        LIMIT #{limit}
+    </select>
+
     <select id="findBroadcastByFeedsAndCursor" resultMap="BaseResultMap">
         SELECT m.id, m.biz_type, m.title, m.content_url, m.send_type, m.status, m.create_time, m.expire_time
         FROM message m
@@ -65,12 +79,12 @@
         WHERE mfm.feed_type = #{feedType}
     </select>
 
-    <select id="countByFeedTypeAndCursor" resultType="long">
+    <select id="countByFeedType" resultType="long">
         SELECT COUNT(1)
         FROM message m
         JOIN message_feed_mapping mfm ON m.id = mfm.message_id
         WHERE mfm.feed_type = #{feedType}
-          AND m.id > #{cursor}
+          AND m.send_type = 0  -- 仅统计广播消息，USER 消息单独跟踪
           AND m.status = 0
           AND (m.expire_time IS NULL OR m.expire_time > NOW())
     </select>
