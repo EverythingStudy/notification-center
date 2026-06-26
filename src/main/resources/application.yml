@@ -9,12 +9,14 @@ spring:
   flyway:
     enabled: false
     validate-on-migrate: false
-  redis:
-    host: ${REDIS_HOST:192.168.52.197}
-    port: ${REDIS_PORT:6379}
-    password: ${REDIS_PASSWORD:shengtong}
-    connect-timeout: 5000
-    timeout: 5000
+  data:
+    redis:
+      host: 192.168.52.197
+      port: 6379
+      database: 0
+      password: shengtong
+      connect-timeout: 5000
+      timeout: 5000
 
 # MyBatis Configuration
 mybatis:
