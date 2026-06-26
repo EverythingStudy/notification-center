@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.notification.mapper.NotificationMessageMapper">
+
+    <resultMap id="BaseResultMap" type="com.notification.model.entity.NotificationMessage">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="message_id" property="messageId" jdbcType="VARCHAR"/>
+        <result column="user_id" property="userId" jdbcType="BIGINT"/>
+        <result column="category" property="category" jdbcType="VARCHAR"/>
+        <result column="channel" property="channel" jdbcType="VARCHAR"/>
+        <result column="title" property="title" jdbcType="VARCHAR"/>
+        <result column="content" property="content" jdbcType="VARCHAR"/>
+        <result column="biz_type" property="bizType" jdbcType="VARCHAR"/>
+        <result column="biz_id" property="bizId" jdbcType="VARCHAR"/>
+        <result column="is_read" property="isRead" jdbcType="BOOLEAN"/>
+        <result column="is_deleted" property="isDeleted" jdbcType="BOOLEAN"/>
+        <result column="send_status" property="sendStatus" jdbcType="TINYINT"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="read_at" property="readAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, message_id, user_id, category, channel, title, content, biz_type, biz_id,
+        is_read, is_deleted, send_status, created_at, read_at
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO notification_message (message_id, user_id, category, channel, title, content,
+            biz_type, biz_id, is_read, is_deleted, send_status, created_at, read_at)
+        VALUES (#{messageId}, #{userId}, #{category}, #{channel}, #{title}, #{content},
+            #{bizType}, #{bizId}, #{isRead}, #{isDeleted},
+            #{sendStatus},
+            #{createdAt}, #{readAt})
+    </insert>
+
+    <update id="updateById">
+        UPDATE notification_message
+        <set>
+            <if test="messageId != null">message_id = #{messageId},</if>
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="category != null">category = #{category},</if>
+            <if test="channel != null">channel = #{channel},</if>
+            <if test="title != null">title = #{title},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="bizType != null">biz_type = #{bizType},</if>
+            <if test="bizId != null">biz_id = #{bizId},</if>
+            <if test="isRead != null">is_read = #{isRead},</if>
+            <if test="isDeleted != null">is_deleted = #{isDeleted},</if>
+            <if test="sendStatus != null">send_status = #{sendStatus},</if>
+            <if test="readAt != null">read_at = #{readAt},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM notification_message WHERE id = #{id}
+    </select>
+
+    <select id="findByIdAndUserIdAndIsDeletedFalse" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM notification_message
+        WHERE id = #{id} AND user_id = #{userId} AND is_deleted = 0
+    </select>
+
+    <select id="findByUserIdAndCategoryAndIsDeletedFalseOrderByCreatedAtDesc" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM notification_message
+        WHERE user_id = #{userId} AND category = #{category} AND is_deleted = 0
+        ORDER BY created_at DESC LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="findByUserIdAndIsDeletedFalseOrderByCreatedAtDesc" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/> FROM notification_message
+        WHERE user_id = #{userId} AND is_deleted = 0
+        ORDER BY created_at DESC LIMIT #{offset}, #{size}
+    </select>
+
+    <update id="markAllAsRead">
+        UPDATE notification_message
+        SET is_read = 1, read_at = NOW()
+        WHERE user_id = #{userId} AND category = #{category} AND is_read = 0
+    </update>
+
+    <select id="countByUserIdAndCategoryAndIsReadFalseAndIsDeletedFalse" resultType="long">
+        SELECT COUNT(1) FROM notification_message
+        WHERE user_id = #{userId} AND category = #{category} AND is_read = 0 AND is_deleted = 0
+    </select>
+
+    <select id="countByUserIdAndIsReadFalseAndIsDeletedFalse" resultType="long">
+        SELECT COUNT(1) FROM notification_message
+        WHERE user_id = #{userId} AND is_read = 0 AND is_deleted = 0
+    </select>
+
+</mapper>

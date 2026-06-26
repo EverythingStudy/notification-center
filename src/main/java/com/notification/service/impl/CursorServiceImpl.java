@@ -35,17 +35,26 @@ public class CursorServiceImpl implements CursorService {
     @Override
     public Long getCursor(Long userId, String feedType) {
         // 1. 优先读 Redis Hash
-        String redisKey = MessageIdUtils.buildUserCursorKey(userId);
-        Object cached = redisTemplate.opsForHash().get(redisKey, feedType);
-        if (cached instanceof Number num) {
-            return num.longValue();
+        try {
+            String redisKey = MessageIdUtils.buildUserCursorKey(userId);
+            Object cached = redisTemplate.opsForHash().get(redisKey, feedType);
+            if (cached instanceof Number num) {
+                return num.longValue();
+            }
+        } catch (Exception e) {
+            log.debug("Redis 不可用，回查 DB cursor: {}", e.getMessage());
         }
         // 2. Redis 没有则查 MySQL
         Optional<UserFeedCursor> cursorOpt = cursorMapper.findByUserIdAndFeedType(userId, feedType);
         Long cursor = cursorOpt.map(UserFeedCursor::getCursor).orElse(0L);
         // 3. 回写 Redis
-        redisTemplate.opsForHash().put(redisKey, feedType, cursor);
-        redisTemplate.expire(redisKey, 7, TimeUnit.DAYS);
+        try {
+            String redisKey = MessageIdUtils.buildUserCursorKey(userId);
+            redisTemplate.opsForHash().put(redisKey, feedType, cursor);
+            redisTemplate.expire(redisKey, 7, TimeUnit.DAYS);
+        } catch (Exception e) {
+            log.debug("Redis 不可用，跳过 cursor 回写: {}", e.getMessage());
+        }
         return cursor;
     }
 
@@ -55,13 +64,17 @@ public class CursorServiceImpl implements CursorService {
         String redisKey = MessageIdUtils.buildUserCursorKey(userId);
 
         // 批量从 Redis Hash 获取
-        List<Object> multiGet = redisTemplate.opsForHash().multiGet(redisKey,
-                feedTypes.stream().map(ft -> (Object) ft).toList());
-        for (int i = 0; i < feedTypes.size(); i++) {
-            Object val = multiGet.get(i);
-            if (val instanceof Number num) {
-                result.put(feedTypes.get(i), num.longValue());
+        try {
+            List<Object> multiGet = redisTemplate.opsForHash().multiGet(redisKey,
+                    feedTypes.stream().map(ft -> (Object) ft).toList());
+            for (int i = 0; i < feedTypes.size(); i++) {
+                Object val = multiGet.get(i);
+                if (val instanceof Number num) {
+                    result.put(feedTypes.get(i), num.longValue());
+                }
             }
+        } catch (Exception e) {
+            log.debug("Redis 不可用，跳过批量 cursor 读取: {}", e.getMessage());
         }
 
         // 缺失的从 MySQL 补
@@ -70,7 +83,11 @@ public class CursorServiceImpl implements CursorService {
             List<UserFeedCursor> dbCursors = cursorMapper.findByUserIdAndFeedTypes(userId, missed);
             for (UserFeedCursor c : dbCursors) {
                 result.put(c.getFeedType(), c.getCursor());
-                redisTemplate.opsForHash().put(redisKey, c.getFeedType(), c.getCursor());
+                try {
+                    redisTemplate.opsForHash().put(redisKey, c.getFeedType(), c.getCursor());
+                } catch (Exception e) {
+                    log.debug("Redis 不可用，跳过 cursor 回写: {}", e.getMessage());
+                }
             }
         }
 
@@ -79,7 +96,11 @@ public class CursorServiceImpl implements CursorService {
             result.putIfAbsent(ft, 0L);
         }
 
-        redisTemplate.expire(redisKey, 7, TimeUnit.DAYS);
+        try {
+            redisTemplate.expire(redisKey, 7, TimeUnit.DAYS);
+        } catch (Exception e) {
+            log.debug("Redis 不可用，跳过 expire: {}", e.getMessage());
+        }
         return result;
     }
 
@@ -102,14 +123,17 @@ public class CursorServiceImpl implements CursorService {
         }
 
         // 2. 更新 Redis（先获取旧值，取 max）
-        String redisKey = MessageIdUtils.buildUserCursorKey(userId);
-        Object oldVal = redisTemplate.opsForHash().get(redisKey, feedType);
-        long oldCursor = oldVal instanceof Number num ? num.longValue() : 0L;
-        long finalCursor = Math.max(oldCursor, newCursor);
-        redisTemplate.opsForHash().put(redisKey, feedType, finalCursor);
-        redisTemplate.expire(redisKey, 7, TimeUnit.DAYS);
-
-        log.debug("Cursor 已更新: userId={}, feed={}, cursor={}", userId, feedType, finalCursor);
+        try {
+            String redisKey = MessageIdUtils.buildUserCursorKey(userId);
+            Object oldVal = redisTemplate.opsForHash().get(redisKey, feedType);
+            long oldCursor = oldVal instanceof Number num ? num.longValue() : 0L;
+            long finalCursor = Math.max(oldCursor, newCursor);
+            redisTemplate.opsForHash().put(redisKey, feedType, finalCursor);
+            redisTemplate.expire(redisKey, 7, TimeUnit.DAYS);
+            log.debug("Cursor 已更新: userId={}, feed={}, cursor={}", userId, feedType, finalCursor);
+        } catch (Exception e) {
+            log.debug("Redis 不可用，跳过 cursor Redis 更新: {}", e.getMessage());
+        }
     }
 
     @Override

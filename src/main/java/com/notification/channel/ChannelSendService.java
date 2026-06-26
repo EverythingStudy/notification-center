@@ -93,6 +93,7 @@ public class ChannelSendService {
 
         try {
             channel.send(context);
+            //更新消息状态为成功
             updateMessageStatus(messageRecordId, SendStatusEnum.SUCCESS);
             log.debug("Channel send success: channel={}, messageId={}",
                     context.getChannel(), context.getOriginalMessage().getMessageId());
@@ -103,9 +104,12 @@ public class ChannelSendService {
             int retryCount = context.getRetryCount() + 1;
             if (retryCount <= maxRetryAttempts) {
                 context.setRetryCount(retryCount);
+                //放入kafka重试队列
                 publishToRetry(context, messageRecordId, e.getMessage());
             } else {
+                //放入kafka死信队列
                 publishToDeadLetter(context, messageRecordId, e.getMessage());
+                //更新消息状态为失败
                 updateMessageStatus(messageRecordId, SendStatusEnum.FAILED);
             }
         }
@@ -148,6 +152,7 @@ public class ChannelSendService {
     }
 
     /**
+     * kafka重试队列
      * Publishes retry message to Kafka channel-retry topic.
      * The payload includes the serialized UpstreamMessageDTO and templateCode,
      * so the retry consumer can reconstruct the send context.
@@ -170,6 +175,7 @@ public class ChannelSendService {
     }
 
     /**
+     * kafka死信队列
      * Publishes dead-letter message to Kafka channel-dead-letter topic.
      */
     private void publishToDeadLetter(ChannelSendContext context, Long messageRecordId, String reason) {

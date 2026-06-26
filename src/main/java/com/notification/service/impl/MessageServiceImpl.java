@@ -63,29 +63,43 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     public Long getFeedMaxCursor(String feedType) {
-        // 优先从 Redis 获取
-        String redisKey = MessageIdUtils.buildFeedMaxCursorKey(feedType);
-        Object cached = redisTemplate.opsForValue().get(redisKey);
-        if (cached instanceof Number num) {
-            return num.longValue();
-        }
-        // Redis 没有则查 DB 并回写 Redis
+        //try {
+            String redisKey = MessageIdUtils.buildFeedMaxCursorKey(feedType);
+            Object cached = redisTemplate.opsForValue().get(redisKey);
+            if (cached instanceof Number num) {
+                return num.longValue();
+            }
+        //} catch (Exception e) {
+        //    log.debug("Redis 不可用，回查 DB feedMaxCursor: {}", e.getMessage());
+        //}
         Long maxId = messageMapper.findMaxIdByFeedType(feedType);
         if (maxId != null) {
-            redisTemplate.opsForValue().set(redisKey, maxId);
+            //try {
+                redisTemplate.opsForValue().set(MessageIdUtils.buildFeedMaxCursorKey(feedType), maxId);
+           // } catch (Exception e) {
+           //     log.debug("Redis 不可用，跳过回写: {}", e.getMessage());
+           // }
         }
         return maxId != null ? maxId : 0L;
     }
 
     @Override
     public long countByFeedType(String feedType) {
-        String redisKey = "feed:" + feedType + ":count";
-        Object cached = redisTemplate.opsForValue().get(redisKey);
-        if (cached instanceof Number num) {
-            return num.longValue();
-        }
+        //try {
+            String redisKey = "feed:" + feedType + ":count";
+            Object cached = redisTemplate.opsForValue().get(redisKey);
+            if (cached instanceof Number num) {
+                return num.longValue();
+            }
+       // } catch (Exception e) {
+        //    log.debug("Redis 不可用，回查 DB count: {}", e.getMessage());
+       // }
         long count = messageMapper.countByFeedType(feedType);
-        redisTemplate.opsForValue().set(redisKey, count, 30, TimeUnit.SECONDS);
+        try {
+            redisTemplate.opsForValue().set("feed:" + feedType + ":count", count, 30, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.debug("Redis 不可用，跳过缓存写入: {}", e.getMessage());
+        }
         return count;
     }
 }

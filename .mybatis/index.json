@@ -1,22 +1,27 @@
 {
   "version": "1.0",
-  "timestamp": 1782121987031,
+  "timestamp": 1782367707597,
   "projectRoot": "d:\\github\\notification-center",
   "entries": [
-    {
-      "path": "target\\classes\\com\\notification\\NotificationApplication.class",
-      "mtime": 1782121231042.0815,
-      "size": 757
-    },
-    {
-      "path": "target\\classes\\com\\notification\\config\\ThreadPoolConfig.class",
-      "mtime": 1782121231366.4324,
-      "size": 1689
-    },
     {
       "path": "target\\classes\\com\\notification\\config\\KafkaConfig.class",
       "mtime": 1782121945087.9324,
       "size": 1852
+    },
+    {
+      "path": "target\\classes\\com\\notification\\NotificationApplication.class",
+      "mtime": 1782121988069.9126,
+      "size": 757
+    },
+    {
+      "path": "target\\classes\\com\\notification\\config\\ThreadPoolConfig.class",
+      "mtime": 1782121988396.6033,
+      "size": 1689
+    },
+    {
+      "path": "target\\classes\\com\\notification\\config\\FlywayConfig.class",
+      "mtime": 1782367703060.547,
+      "size": 1404
     }
   ]
 }

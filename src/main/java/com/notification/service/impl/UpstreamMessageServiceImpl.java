@@ -113,8 +113,12 @@ public class UpstreamMessageServiceImpl implements UpstreamMessageService {
                                         List<String> feedTypes) {
         for (String feedType : feedTypes) {
             String redisKey = MessageIdUtils.buildFeedMaxCursorKey(feedType);
-            redisTemplate.opsForValue().set(redisKey, message.getId());
-            log.debug("广播消息 Feed cursor 更新: feed={}, maxCursor={}", feedType, message.getId());
+            try {
+                redisTemplate.opsForValue().set(redisKey, message.getId());
+                log.debug("广播消息 Feed cursor 更新: feed={}, maxCursor={}", feedType, message.getId());
+            } catch (Exception e) {
+                log.debug("Redis 不可用，跳过 broadcast cursor 更新: {}", e.getMessage());
+            }
         }
         log.info("广播消息已处理（读扩散）: messageId={}, feeds={}", message.getId(), feedTypes);
     }
@@ -143,13 +147,17 @@ public class UpstreamMessageServiceImpl implements UpstreamMessageService {
 
         for (Long userId : userIds) {
             // 幂等校验（Redis 去重）
-            String dedupKey = MessageIdUtils.buildDedupKey(dto.getMessageId(), userId);
-            Boolean alreadySent = redisTemplate.opsForValue().setIfAbsent(dedupKey, "1");
-            if (Boolean.FALSE.equals(alreadySent)) {
-                log.debug("重复消息跳过: messageId={}, userId={}", dto.getMessageId(), userId);
-                continue;
+            try {
+                String dedupKey = MessageIdUtils.buildDedupKey(dto.getMessageId(), userId);
+                Boolean alreadySent = redisTemplate.opsForValue().setIfAbsent(dedupKey, "1");
+                if (Boolean.FALSE.equals(alreadySent)) {
+                    log.debug("重复消息跳过: messageId={}, userId={}", dto.getMessageId(), userId);
+                    continue;
+                }
+                redisTemplate.expire(dedupKey, java.time.Duration.ofDays(7));
+            } catch (Exception e) {
+                log.debug("Redis 不可用，跳过去重校验: {}", e.getMessage());
             }
-            redisTemplate.expire(dedupKey, java.time.Duration.ofDays(7));
 
             // 写入 user_message（UNREAD 状态），标记该用户有待读的 USER 消息
             String userMsgFeedType = feedTypes != null && !feedTypes.isEmpty() ? feedTypes.get(0) : FeedTypeEnum.SYSTEM.getCode();

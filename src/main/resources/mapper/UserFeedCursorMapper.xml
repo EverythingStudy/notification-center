@@ -5,24 +5,24 @@
     <resultMap id="BaseResultMap" type="com.notification.model.entity.UserFeedCursor">
         <id column="user_id" property="userId" jdbcType="BIGINT"/>
         <id column="feed_type" property="feedType" jdbcType="VARCHAR"/>
-        <result column="`cursor`" property="cursor" jdbcType="BIGINT"/>
+        <result column="cursor" property="cursor" jdbcType="BIGINT"/>
         <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
     </resultMap>
 
     <sql id="Base_Column_List">
-        user_id, feed_type, `cursor`, update_time
+        user_id, feed_type, cursor, update_time
     </sql>
 
     <insert id="insert">
-        INSERT INTO user_feed_cursor (user_id, feed_type, `cursor`, update_time)
+        INSERT INTO user_feed_cursor (user_id, feed_type, cursor, update_time)
         VALUES (#{userId}, #{feedType}, #{cursor}, NOW())
     </insert>
 
     <update id="updateCursor">
         UPDATE user_feed_cursor
-        SET `cursor` = GREATEST(`cursor`, #{cursor}), update_time = NOW()
+        SET cursor = GREATEST(cursor, #{cursor}), update_time = NOW()
         WHERE user_id = #{userId} AND feed_type = #{feedType}
-          AND `cursor` &lt; #{cursor}
+          AND cursor &lt; #{cursor}
     </update>
 
     <select id="findByUserIdAndFeedType" resultMap="BaseResultMap">

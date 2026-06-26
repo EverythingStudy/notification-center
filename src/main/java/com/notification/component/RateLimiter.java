@@ -37,7 +37,12 @@ public class RateLimiter {
             "else " +
             "    return 0 " +
             "end";
-
+/**
+ * 尝试获取令牌
+ * @param channelName
+ * @param maxPermits
+ * @return
+ */
     public boolean tryAcquire(String channelName, long maxPermits) {
         String key = "notify:ratelimit:" + channelName;
         long now = System.currentTimeMillis();

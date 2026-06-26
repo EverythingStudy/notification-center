@@ -1,6 +1,4 @@
 package com.notification.channel;
-
-import com.notification.channel.ChannelSendContext;
 import com.notification.model.enums.ChannelTypeEnum;
 
 public interface NotificationChannel {

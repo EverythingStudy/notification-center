@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8081
 
 spring:
   application:
@@ -7,11 +7,18 @@ spring:
   profiles:
     active: dev
   flyway:
-    enabled: true
+    enabled: false
+    validate-on-migrate: false
+  redis:
+    host: ${REDIS_HOST:192.168.52.197}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:shengtong}
+    connect-timeout: 5000
+    timeout: 5000
 
-  # MyBatis Configuration
+# MyBatis Configuration
 mybatis:
-  mapper-locations: classpath:mybatis/mapper/*.xml
+  mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.notification.model.entity
   type-handlers-package: com.notification.handler
   configuration:
@@ -32,10 +39,6 @@ kafka:
     channel-retry: notification.channel.retry
     channel-dead-letter: notification.channel.dead-letter
     message-recall: notification.message.recall
-
-redis:
-  host: ${REDIS_HOST:localhost}
-  port: ${REDIS_PORT:6379}
 
 # Channel-specific configuration
 channel:
